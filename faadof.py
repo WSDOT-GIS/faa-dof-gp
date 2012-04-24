@@ -3,6 +3,8 @@
 Created on Apr 23, 2012
 
 @author: JacobsJ
+@todo: add command line parameters for gdb location and dof location
+@todo: add optional command line parameter for which z value to use in geometry: above ground or above sea level column
 '''
 
 import os.path, re, datetime
@@ -87,13 +89,6 @@ class Obstacle(object):
         return object.__str__(self, *args, **kwargs)
 
 def addObstacleToRow(row, obstacle):
-    #    def tryToSetValue(fieldName, value):
-    #        try:
-    #            row.setValue(fieldName, value)
-    #        except RuntimeError, err:
-    #            print "Error inserting %s into row.%s. %s" % (fieldName, value, err)
-    #            raise
-
     row.orsCode = obstacle.orsCode
     row.obstacleNo = obstacle.obstacleNumber
     row.verificationStatus = obstacle.verificationStatus
@@ -202,7 +197,8 @@ def createDomains(gdbPath):
                 ["MS", "Montserrat"],
                 ["TC", "Turks and Caicos Islands"],
                 ["VG", "British Virgin Islands"],
-                ["VI", "Virgin Islands"],["AS", "American Samoa"],
+                ["VI", "Virgin Islands"],
+                ["AS", "American Samoa"],
                 ["FM", "Federated States of Micronesia"],
                 ["GU", "Guam"],
                 ["KI", "Kiribati"],
@@ -306,14 +302,14 @@ def createDomains(gdbPath):
     domainValues = {
         "AG EQUIP":"agricultural equipment",
         "ARCH":"arch",
-        "BALLOON":"tethered; weather; other reconnaissance",
+        "BALLOON":"balloon: tethered; weather; other reconnaissance",
         "BLDG":"building",
         "BLDG-TWR":"latticework greater than 20' on building",
         "BRIDGE":"bridge",
-        "CATENARY":"transmission line span/wire/cable",
+        "CATENARY":"catenary: transmission line span/wire/cable",
         "COOL TWR":"nuclear cooling tower",
-        "CRANE":"permanent",
-        "CRANE T":"temporary",
+        "CRANE":"crane: permanent",
+        "CRANE T":"crane: temporary",
         "CTRL TWR":"airport control tower",
         "DAM":"Dam",
         "DOME":"Dome",
@@ -324,21 +320,21 @@ def createDomains(gdbPath):
         "LIGHTHOUSE":"Lighthouse",
         "MONUMENT":"Monument",
         "NAVAID":"airport navigational aid",
-        "PLANT":"multiple close structures used for industrial purposes",
+        "PLANT":"plant: multiple close structures used for industrial purposes",
         "POLE":"flag pole; light pole",
-        "REFINERY":"multiple close structures used for purifying crude materials",
+        "REFINERY":"refinery: multiple close structures used for purifying crude materials",
         "RIG":"oil rig",
         "SIGN":"Sign",
-        "SPIRE":"steeple",
-        "STACK":"smoke; industrial",
+        "SPIRE":"spire: steeple",
+        "STACK":"stack: smoke; industrial",
         "STADIUM":"Stadium",
         "T-L TWR":"transmission line tower; telephone pole",
-        "TANK":"water; fuel",
+        "TANK":"tank: water; fuel",
         "TOWER":"Tower",
         "TRAMWAY":"Tramway",
         "TREE":"Tree",
         "VEGETATION":"Vegetation",
-        "WINDMILL":"wind turbine"
+        "WINDMILL":"windmill: wind turbine"
     }
     for code in domainValues:
         arcpy.AddCodedValueToDomain_management(gdbPath, domainName, code, domainValues[code])
@@ -419,7 +415,8 @@ def readDofIntoGdb(dofPath, gdbPath):
             i = 0
             for line in f:
                 if i == 0:
-                    pass # TODO: Do something with "Currency Date"
+                    print "Currency date is %s." % line
+                    # TODO: Do something with "Currency Date"
                 elif i >= 4:
                     obstacle = Obstacle(line)
                     row = None
@@ -444,8 +441,8 @@ def readDofIntoGdb(dofPath, gdbPath):
 gdbPath = os.path.abspath("../FaaObstruction.gdb")
 dofPath = os.path.abspath("../Sample/53-WA.Dat")
 
-#print "Creating new geodatabase: %s..." % gdbPath
-#createDofGdb(gdbPath)
+print "Creating new geodatabase: %s..." % gdbPath
+createDofGdb(gdbPath)
 
 print "Importing data from %s into %s..." % (dofPath, gdbPath)
 readDofIntoGdb(dofPath, gdbPath)
