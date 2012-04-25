@@ -1,13 +1,16 @@
 # -*- coding: utf-8 -*-
 '''
 Created on Apr 23, 2012
+@param The path of the output geodatabase.
+@param The path to the input digital obstacle file (DOF)
+@param 
 
 @author: JacobsJ
 @todo: add command line parameters for gdb location and dof location
 @todo: add optional command line parameter for which z value to use in geometry: above ground or above sea level column
 '''
 
-import os.path, re, datetime
+import sys, os.path, re, datetime
 import arcpy
 
 _jdatere = re.compile("(?P<year>\d{4})(?P<days>\d{3})")
@@ -374,48 +377,48 @@ def createDofGdb(gdbPath):
     arcpy.CreateFileGDB_management(*os.path.split(gdbPath))
     print "Creating domains in %s..." % gdbPath
     createDomains(gdbPath)
-    # Add feature classes
-    print "Creating feature classes in %s..." % gdbPath
-    createDofFeatureClass(gdbPath, "NAVD1988", _wgs84 + ',' + _navd1988)
-    createDofFeatureClass(gdbPath, "NGVD1929", _wgs84 + ',' + _ngvd1929) 
+    # Add feature class
+    print "Creating feature class..." 
+    createDofFeatureClass(gdbPath, "Obstacles", _wgs84 + ',' + _navd1988)
 
 
-#def readDofFile(dofPath):
-#    """Reads DOF file and converts to Obstacle objects.
-#    @param dofPath: Path to the DOF file
-#    @param gdbPath: Path to the GDB.
-#    """
-#    obstacles = []
-#    if os.path.exists(dofPath):
-#        with open(dofPath) as f:
-#            i = 0
-#            for line in f:
-#                if i == 0:
-#                    pass # TODO: Do something with "Currency Date"
-#                elif i >= 4:
-#                    obstacle = Obstacle(line)
-#                    print "%s,%s" % (str(obstacle.longitude), str(obstacle.latitude))
-#                    print "%s %s" % (obstacle.longitude.toDD(), obstacle.latitude.toDD())
-#                    obstacles.append(obstacle)
-#                i += 1
-#                
-#    else:
-#        raise "File not found: %s" % dofPath
-#    return obstacles
+def readDofFile(dofPath):
+    """Reads DOF file and converts to Obstacle objects.
+    @param dofPath: Path to the DOF file
+    @param gdbPath: Path to the GDB.
+    """
+    obstacles = []
+    if os.path.exists(dofPath):
+        with open(dofPath) as f:
+            i = 0
+            for line in f:
+                if i == 0:
+                    pass # TODO: Do something with "Currency Date"
+                elif i >= 4:
+                    obstacle = Obstacle(line)
+                    print "%s,%s" % (str(obstacle.longitude), str(obstacle.latitude))
+                    print "%s %s" % (obstacle.longitude.toDD(), obstacle.latitude.toDD())
+                    obstacles.append(obstacle)
+                i += 1
+                
+    else:
+        raise "File not found: %s" % dofPath
+    return obstacles
 
 def readDofIntoGdb(dofPath, gdbPath):
     """Reads DOF file into file geodatabase.
     @param dofPath: Path to the DOF file
     @param gdbPath: Path to the GDB.
+    @todo: Put all features into a single feature class.  Use different cursors to handle the different vertical coordinate systems .
     """
     if os.path.exists(dofPath):
-        cursor88 = arcpy.InsertCursor(os.path.join(gdbPath, "NAVD1988"))
-        cursor29 = arcpy.InsertCursor(os.path.join(gdbPath, "NGVD1929"))
+        cursor88 = arcpy.InsertCursor(os.path.join(gdbPath, "Obstacles"))
+        cursor29 = arcpy.InsertCursor(os.path.join(gdbPath, "Obstacles"), "%s,%s" % (_wgs84, _ngvd1929))
         with open(dofPath) as f:
             i = 0
             for line in f:
                 if i == 0:
-                    print "Currency date is %s." % line
+                    print line
                     # TODO: Do something with "Currency Date"
                 elif i >= 4:
                     obstacle = Obstacle(line)
@@ -438,14 +441,31 @@ def readDofIntoGdb(dofPath, gdbPath):
     else:
         raise "File not found: %s" % dofPath
 
-gdbPath = os.path.abspath("../FaaObstruction.gdb")
-dofPath = os.path.abspath("../Sample/53-WA.Dat")
 
-print "Creating new geodatabase: %s..." % gdbPath
-createDofGdb(gdbPath)
-
-print "Importing data from %s into %s..." % (dofPath, gdbPath)
-readDofIntoGdb(dofPath, gdbPath)
-
-print "Finished"
-
+def main(argv=None):
+    """This method will be run if this file is run as a script (as opposed to a module).
+    """
+    if argv is None:
+        argv = sys.argv
+    
+    if len(argv) > 1:
+        gdbPath = os.path.abspath(arcpy.GetParameterAsText(1))
+    else:
+        gdbPath = os.path.abspath("../FaaObstruction.gdb")
+    
+    if len(argv) > 2:
+        dofPath = os.path.abspath(arcpy.GetParameterAsText(2))
+    else:
+        dofPath = os.path.abspath("../Sample/53-WA.Dat")
+    
+    print "Creating new geodatabase: %s..." % gdbPath
+    createDofGdb(gdbPath)
+    
+    print "Importing data from %s into %s..." % (dofPath, gdbPath)
+    readDofIntoGdb(dofPath, gdbPath)
+    
+    print "Finished"
+    
+        
+if __name__ == "__main__":
+    main()
