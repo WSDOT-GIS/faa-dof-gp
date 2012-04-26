@@ -412,6 +412,8 @@ def readDofIntoGdb(dofPath, gdbPath):
     @todo: Put all features into a single feature class.  Use different cursors to handle the different vertical coordinate systems .
     """
     if os.path.exists(dofPath):
+        # Because of the differing vertical coordinate systems, two cursors need to be created.
+        cursor = None
         cursor88 = arcpy.InsertCursor(os.path.join(gdbPath, "Obstacles"))
         cursor29 = arcpy.InsertCursor(os.path.join(gdbPath, "Obstacles"), "%s,%s" % (_wgs84, _ngvd1929))
         with open(dofPath) as f:
@@ -422,19 +424,16 @@ def readDofIntoGdb(dofPath, gdbPath):
                     # TODO: Do something with "Currency Date"
                 elif i >= 4:
                     obstacle = Obstacle(line)
-                    row = None
-                    if obstacle.date >= _zDate:
-                        row = cursor88.newRow()
-                        addObstacleToRow(row, obstacle)
-                        cursor88.insertRow(row)
+                    
+                    # Choose the correct cursor based on the date
+                    if False: #obstacle.date < _zDate:
+                        cursor = cursor29
                     else:
-                        row = cursor29.newRow()
-                        addObstacleToRow(row, obstacle)
-                        try:
-                            cursor29.insertRow(row)
-                        except RuntimeError, err:
-                            print "%s: %s" % (err, obstacle.stateId)
-                            raise
+                        cursor = cursor88
+                        
+                    row = cursor.newRow()
+                    addObstacleToRow(row, obstacle)
+                    cursor.insertRow(row)
                     
                 i += 1
         del cursor88, cursor29
