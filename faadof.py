@@ -22,18 +22,6 @@ _navd1988 = 'VERTCS["NAVD_1988",VDATUM["North_American_Vertical_Datum_1988"],PAR
 
 _zDate = datetime.date(2001, 3, 12) # Records on or after this date are in NAVD 1988.  Prior are NGVD 1929.
 
-#def getCSDir():
-#    subdir = "ArcGIS/Desktop10.0/Coordinate Systems"
-#    # Try to get the programfiles(x86) directory.  (64-bit OS only)
-#    if os.environ.has_key("programfiles(x86)"):
-#        output = os.path.join(os.environ["programfiles(x86)"], subdir)
-#        if os.path.exists(output):
-#            return output
-#    if os.environ.has_key("programfiles"):
-#        output = os.path.join(os.environ["programfiles"], subdir)
-#        return output
-    
-
 def julianDateToDate(jDate):
     match =_jdatere.match(jDate)
     if match:
@@ -58,9 +46,6 @@ class Dms(object):
         self.hemisphere = hemisphere
     def toDD(self):
         dd = dmsToDD(self.degrees, self.minutes, self.seconds, self.hemisphere)
-        # Negate the value if hemisphere is south or west.
-        if re.match("[SW]", self.hemisphere): 
-            dd *= -1
         return dd
     def __str__(self, *args, **kwargs):
         # return "%s %s %s %s" % (self.degrees, self.minutes, self.seconds, self.hemisphere)
