@@ -390,9 +390,6 @@ def downloadDofs(url="https://nfdc.faa.gov/tod/public/DOFS/"):
     
     # Extract all of the DOF URLs
     matches = linkRe.findall(html)
-    data = map(lambda s: {"url": os.path.join(url, s[0]), "date": datetime.date(int("20" + s[1]), int(s[2]), int(s[3]))}, matches)
-    
-    # TODO: Loop through all of the paths and determine which is the newest.  Download that file.
     # sample matches:
     #[
     #    ('/tod/public/DOFS/DOF_111020.zip', '11', '10', '20'), 
@@ -400,7 +397,16 @@ def downloadDofs(url="https://nfdc.faa.gov/tod/public/DOFS/"):
     #    ('/tod/public/DOFS/DOF_120108.zip', '12', '01', '08'), 
     #    ('/tod/public/DOFS/DOF_120304.zip', '12', '03', '04')
     #]
+    data = map(lambda s: {"url": urllib2.urlparse.urljoin(url, s[0]), "date": datetime.date(int("20" + s[1]), int(s[2]), int(s[3]))}, matches)
+    
+    # TODO: Loop through all of the paths and determine which is the newest.  Download that file.
+
+    newest = None
+    for info in data:
+        if newest is None or newest["date"] < info["date"]:
+            newest = info
     print data
+    print "The newest file is %s." %  newest["url"]
         
     
     pass
@@ -490,5 +496,5 @@ def main(argv=None):
     
         
 if __name__ == "__main__":
-    main()
-    ##downloadDofs()
+    ##main()
+    downloadDofs()
