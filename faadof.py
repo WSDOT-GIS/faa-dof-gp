@@ -10,8 +10,10 @@ Created on Apr 23, 2012
 @todo: add optional command line parameter for which z value to use in geometry: above ground or above sea level column
 '''
 
-import sys, os.path, re, datetime
+import sys, os.path, re, datetime, urllib2, zipfile
+print "Importing arcpy..."
 import arcpy
+print "Finished importing arcpy..."
 
 _jdatere = re.compile("(?P<year>\d{4})(?P<days>\d{3})")
 _wgs84 = 'GEOGCS["GCS_WGS_1984",DATUM["D_WGS_1984",SPHEROID["WGS_1984",6378137.0,298.257223563]],PRIMEM["Greenwich",0.0],UNIT["Degree",0.0174532925199433],AUTHORITY["EPSG",4326]]'
@@ -42,9 +44,10 @@ def julianDateToDate(jDate):
         return date
 
 def dmsToDD(degrees, minutes, seconds, hemisphere):
-    dd = degrees + (minutes / 60) + (seconds/3600)
     if hemisphere == "S" or hemisphere == "W":
-        dd *= -1
+        dd = degrees * - 1 - float(minutes) / 60 - float(seconds)/3600
+    else:
+        dd = degrees + float(minutes) / 60 + float(seconds)/3600
     return dd
 
 class Dms(object): 
@@ -54,13 +57,17 @@ class Dms(object):
         self.seconds = seconds
         self.hemisphere = hemisphere
     def toDD(self):
-        dd = self.degrees + (self.minutes / 60) + (self.seconds/3600)
+        dd = dmsToDD(self.degrees, self.minutes, self.seconds, self.hemisphere)
         # Negate the value if hemisphere is south or west.
         if re.match("[SW]", self.hemisphere): 
             dd *= -1
         return dd
     def __str__(self, *args, **kwargs):
-        return "%s %s %s %s" % (self.degrees, self.minutes, self.seconds, self.hemisphere)
+        # return "%s %s %s %s" % (self.degrees, self.minutes, self.seconds, self.hemisphere)
+        if re.match("[SW]", self.hemisphere):
+            return "%s %s %s %s" % (self.degrees, self.minutes, self.seconds, self.hemisphere)
+        else:
+            return "%s %s %s %s" % (self.degrees, self.minutes, self.seconds, self.hemisphere)
 
     
 class Obstacle(object):
@@ -343,6 +350,11 @@ def createDomains(gdbPath):
         arcpy.AddCodedValueToDomain_management(gdbPath, domainName, code, domainValues[code])
 
 def createDofFeatureClass(out_path, name, projection):
+    """Creates the Digital Obstacle File feature class and defines its schema.
+    @param out_path: The workspace (e.g., geodatabase) where the feature class will be created.
+    @param name: The name that will be given to the feature class.
+    @param projection: The projection that will be used by the feature class.
+    """
     arcpy.CreateFeatureclass_management(out_path, name, "POINT", None, None, "ENABLED", projection)
     fcPath = os.path.join(out_path, name)
     arcpy.AddField_management(fcPath, "OrsCode", "TEXT", None, None, 2, "ORS Code", "NON_NULLABLE", "REQUIRED", "OrsCode")
@@ -381,6 +393,32 @@ def createDofGdb(gdbPath):
     print "Creating feature class..." 
     createDofFeatureClass(gdbPath, "Obstacles", _wgs84 + ',' + _navd1988)
 
+
+def downloadDofs(url="https://nfdc.faa.gov/tod/public/DOFS/"):
+    linkRe = re.compile(r"""<a href=['"](?P<path>/tod/public/DOFS/DOF_(\d{2})(\d{2})(\d{2})\.zip)['"]>""", re.IGNORECASE)
+    
+    print "Reading '%s'..." % url
+    # Open the page and store the HTML in a variable.
+    f = urllib2.urlopen(url)
+    html = f.read()
+    del f# Delete references to unused variables.
+    
+    # Extract all of the DOF URLs
+    matches = linkRe.findall(html)
+    data = map(lambda s: {"url": os.path.join(url, s[0]), "date": datetime.date(int("20" + s[1]), int(s[2]), int(s[3]))}, matches)
+    
+    # TODO: Loop through all of the paths and determine which is the newest.  Download that file.
+    # sample matches:
+    #[
+    #    ('/tod/public/DOFS/DOF_111020.zip', '11', '10', '20'), 
+    #    ('/tod/public/DOFS/DOF_111215.zip', '11', '12', '15'), 
+    #    ('/tod/public/DOFS/DOF_120108.zip', '12', '01', '08'), 
+    #    ('/tod/public/DOFS/DOF_120304.zip', '12', '03', '04')
+    #]
+    print data
+        
+    
+    pass
 
 def readDofFile(dofPath):
     """Reads DOF file and converts to Obstacle objects.
@@ -468,3 +506,4 @@ def main(argv=None):
         
 if __name__ == "__main__":
     main()
+    ##downloadDofs()
