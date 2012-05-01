@@ -283,14 +283,16 @@ if __name__ == "__main__":
 	# Create the destination directory if it does not already exist.
 	if not exists(destDir):
 		mkdir(destDir)
-	elif isdir(destDir):
+	elif not isdir(destDir):
 		raise "Destination directory path exists, but is not a directory."
 	
-	link="http://dfn.dl.sourceforge.net/project/filezilla/FileZilla_Client/3.5.1/FileZilla_3.5.1_win32.zip"
+	# link="http://dfn.dl.sourceforge.net/project/filezilla/FileZilla_Client/3.5.1/FileZilla_3.5.1_win32.zip"
+	link = "http://tod.faa.gov/tod/public/DOFS/DOF_120304.zip"
 	hzfile = HTTPZipFile(link)
 	hzfile.printdir()
-	for fname in ('GPL.html', 'resources/blukis/48x48/filter.png', 'resources/finished.wav'):
-		source_name = "/".join(('FileZilla-3.5.1', fname))
+	#for fname in ('FileZilla-3.5.1/GPL.html', 'FileZilla-3.5.1/resources/blukis/48x48/filter.png', 'FileZilla-3.5.1/resources/finished.wav'):
+	for fname in (('53-WA.Dat',)):
+		source_name = fname
 		dest_fname = join(destDir, basename(fname))
 		print "Extracing %s to %s" % (source_name, dest_fname)
 		
@@ -298,16 +300,19 @@ if __name__ == "__main__":
 		# #This is the original code block as written by the original author.  It does not work in Python 2.6, though.
 		# with hzfile.open(source_name) as f:
 		#	data = f.read()
-		#	new_file = open(dest_fname, 'w')
+		#	new_file = open(dest_fname, 'wb')
 		#	new_file.write(data)
 		#	new_file.close()
 		#=======================================================================
 		
 		f = hzfile.open(source_name)
+		new_file = None
 		try:
 			data = f.read()
-			new_file = open(dest_fname, 'wb')
+			new_file = open(dest_fname, 'wb') # must open file as binary (unless you know you're only dealing with text files).
 			new_file.write(data)
 			new_file.close()
 		finally:
 			f.close()
+			if new_file is not None:
+				new_file.close()
