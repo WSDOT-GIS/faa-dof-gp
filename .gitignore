@@ -1,4 +1,5 @@
 *.gdb
 .project
 .pydevproject
-Scripts/tmp
+Scripts/tmp/*
+Scripts/.settings
