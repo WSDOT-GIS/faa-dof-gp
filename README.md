@@ -11,6 +11,5 @@ Reads remote ZIP files using HTTP range requests.
 
 ## TO DO ##
 * Add ability to read the latest zip file from [FAA DOF site](https://nfdc.faa.gov/tod/public/DOFS/) and extract only the desired text file.  (E.g., extract only the data for WA without having to download the whole zip file.)
-* The remotezip.py script does not work under Windows 7 with Python 2.6 (that comes with ArcGIS 10).  Fix it (or wait until ArcGIS 10.1)
 
 
