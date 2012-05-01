@@ -2,8 +2,7 @@
 '''
 Created on Apr 23, 2012
 @param The path of the output geodatabase.
-@param The path to the input digital obstacle file (DOF)
-@param 
+@param The path to the input digital obstacle file (DOF) 
 
 @author: JacobsJ
 @todo: add command line parameters for gdb location and dof location
