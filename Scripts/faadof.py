@@ -343,10 +343,10 @@ def createDomains(gdbPath):
 	}
 
 	# Create table for domains
-	arcpy.CreateTable_management("in_memory", "DomainValues")
+	arcpy.management.CreateTable("in_memory", "DomainValues")
 	tempTable = "in_memory/DomainValues"
-	arcpy.AddField_management(tempTable, "Name", "TEXT")
-	arcpy.AddField_management(tempTable, "Value", "TEXT")
+	arcpy.management.AddField(tempTable, "Name", "TEXT")
+	arcpy.management.AddField(tempTable, "Value", "TEXT")
 	
 	for domainName in domains:
 		cursor = arcpy.InsertCursor(tempTable)
@@ -361,9 +361,9 @@ def createDomains(gdbPath):
 		del row, cursor
 	
 		domainDescription = domainDef["description"]
-		arcpy.TableToDomain_management(tempTable, "Name", "Value", gdbPath, domainName, domainDescription, "REPLACE")
-		arcpy.DeleteRows_management(tempTable)
-	arcpy.Delete_management(tempTable)
+		arcpy.management.TableToDomain(tempTable, "Name", "Value", gdbPath, domainName, domainDescription, "REPLACE")
+		arcpy.management.DeleteRows(tempTable)
+	arcpy.management.Delete(tempTable)
 
 def createDofFeatureClass(out_path, name, projection):
 	"""Creates the Digital Obstacle File feature class and defines its schema.
@@ -371,25 +371,25 @@ def createDofFeatureClass(out_path, name, projection):
 	@param name: The name that will be given to the feature class.
 	@param projection: The projection that will be used by the feature class.
 	"""
-	arcpy.CreateFeatureclass_management(out_path, name, "POINT", None, None, "ENABLED", projection)
+	arcpy.management.CreateFeatureclass(out_path, name, "POINT", None, None, "ENABLED", projection)
 	fcPath = os.path.join(out_path, name)
-	arcpy.AddField_management(fcPath, "OrsCode", "TEXT", None, None, 2, "ORS Code", "NON_NULLABLE", "REQUIRED", "OrsCode")
-	arcpy.AddField_management(fcPath, "ObstacleNo", "TEXT", None, None, 7, "Obstacle Number", "NON_NULLABLE")
-	arcpy.AddField_management(fcPath, "VerificationStatus", "TEXT", None, None, 1, "Verification Status", "NON_NULLABLE", "NON_REQUIRED", "VerificationStatus")
-	arcpy.AddField_management(fcPath, "CountryId", "TEXT", None, None, 2, "Country Identifier")
-	arcpy.AddField_management(fcPath, "StateId", "TEXT", None, None, 2, "State Identifier")
-	arcpy.AddField_management(fcPath, "CityName", "TEXT", None, None, 16, "City Name")
-	arcpy.AddField_management(fcPath, "ObstacleType", "TEXT", None, None, 12, "Obstacle Type", None, None, "StructureTypes")
-	arcpy.AddField_management(fcPath, "Quantity", "SHORT")
-	arcpy.AddField_management(fcPath, "AglHT", "SHORT", field_alias="Above Ground Level Height (Feet)")
-	arcpy.AddField_management(fcPath, "AmslHt", "SHORT", field_alias="Above Mean Sea Level Height (Feet)")
-	arcpy.AddField_management(fcPath, "Lighting", "TEXT", field_length=1, field_domain="LightingType")
-	arcpy.AddField_management(fcPath, "HorizontalAccuracy", "TEXT", None, None, 1, "Horizontal Accuracy", None, None, "HorizontalAccuracy")
-	arcpy.AddField_management(fcPath, "VerticalAccuracy", "TEXT", None, None, 1, "Vertical Accuracy", None, None, "VerticalAccuracy")
-	arcpy.AddField_management(fcPath, "MarkIndicator", "TEXT", None, None, 1, "Mark Indicator", None, None, "Mark Indicator")
-	arcpy.AddField_management(fcPath, "FaaStudyNo", "TEXT", None, None, 14, "FAA Study Number")
-	arcpy.AddField_management(fcPath, "Action", "TEXT", None, None, 1, None, None, None, "Action")
-	arcpy.AddField_management(fcPath, "Date", "DATE")
+	arcpy.management.AddField(fcPath, "OrsCode", "TEXT", None, None, 2, "ORS Code", "NON_NULLABLE", "REQUIRED", "OrsCode")
+	arcpy.management.AddField(fcPath, "ObstacleNo", "TEXT", None, None, 7, "Obstacle Number", "NON_NULLABLE")
+	arcpy.management.AddField(fcPath, "VerificationStatus", "TEXT", None, None, 1, "Verification Status", "NON_NULLABLE", "NON_REQUIRED", "VerificationStatus")
+	arcpy.management.AddField(fcPath, "CountryId", "TEXT", None, None, 2, "Country Identifier")
+	arcpy.management.AddField(fcPath, "StateId", "TEXT", None, None, 2, "State Identifier")
+	arcpy.management.AddField(fcPath, "CityName", "TEXT", None, None, 16, "City Name")
+	arcpy.management.AddField(fcPath, "ObstacleType", "TEXT", None, None, 12, "Obstacle Type", None, None, "StructureTypes")
+	arcpy.management.AddField(fcPath, "Quantity", "SHORT")
+	arcpy.management.AddField(fcPath, "AglHT", "SHORT", field_alias="Above Ground Level Height (Feet)")
+	arcpy.management.AddField(fcPath, "AmslHt", "SHORT", field_alias="Above Mean Sea Level Height (Feet)")
+	arcpy.management.AddField(fcPath, "Lighting", "TEXT", field_length=1, field_domain="LightingType")
+	arcpy.management.AddField(fcPath, "HorizontalAccuracy", "TEXT", None, None, 1, "Horizontal Accuracy", None, None, "HorizontalAccuracy")
+	arcpy.management.AddField(fcPath, "VerticalAccuracy", "TEXT", None, None, 1, "Vertical Accuracy", None, None, "VerticalAccuracy")
+	arcpy.management.AddField(fcPath, "MarkIndicator", "TEXT", None, None, 1, "Mark Indicator", None, None, "Mark Indicator")
+	arcpy.management.AddField(fcPath, "FaaStudyNo", "TEXT", None, None, 14, "FAA Study Number")
+	arcpy.management.AddField(fcPath, "Action", "TEXT", None, None, 1, None, None, None, "Action")
+	arcpy.management.AddField(fcPath, "Date", "DATE")
 
 def createCurrencyDateTable(out_path, out_name="CurrencyDate", currencyDate=None):
 	"""Creates the "CurrencyDate" table and optionally populates it.
@@ -426,10 +426,10 @@ def createDofGdb(gdbPath):
 	# Delete the GDB if it already exists.
 	if arcpy.Exists(gdbPath):
 		print "%s already exists.  Deleting..." % gdbPath
-		arcpy.Delete_management(gdbPath)
+		arcpy.management.Delete(gdbPath)
 	#Create a new GDB.
 	print "Creating %s..." % gdbPath
-	arcpy.CreateFileGDB_management(*os.path.split(gdbPath))
+	arcpy.management.CreateFileGDB(*os.path.split(gdbPath))
 	print "Creating domains in %s..." % gdbPath
 	createDomains(gdbPath)
 	# Add feature class
