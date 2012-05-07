@@ -391,6 +391,33 @@ def createDofFeatureClass(out_path, name, projection):
 	arcpy.AddField_management(fcPath, "Action", "TEXT", None, None, 1, None, None, None, "Action")
 	arcpy.AddField_management(fcPath, "Date", "DATE")
 
+def createCurrencyDateTable(out_path, out_name="CurrencyDate", currencyDate=None):
+	"""Creates the "CurrencyDate" table and optionally populates it.
+	@param out_path: The path to the geodatabase where the table will be created.
+	@type out_path: str
+	@param out_name: The name to be given to the new table.
+	@type out_name: str
+	@param currencyDate: You can provide a currency date value to populate the CurrencyDate table.
+	@type currencyDate: str or datetime.Date 
+	"""
+	# Join the gdb path and table name to get the full path to the table
+	tablePath = os.path.join(out_path, out_name)
+	# Create the table.
+	arcpy.management.CreateTable(out_path, out_name)
+	# Add the currency date field.
+	arcpy.management.AddField(tablePath, "CurrencyDate", "DATE", field_alias="Currency Date")
+	# If a currency date value has been provided, add a new row with the currency date.
+	if currencyDate is not None:
+		with arcpy.InsertCursor(tablePath) as cursor:
+			row = cursor.newRow()
+			# Date values are added to rows via cursor as strings.
+			if type(currencyDate) == str:
+				row.CurrencyDate = currencyDate
+			elif type(currencyDate) == datetime.date:
+				row.CurrencyDate = str(currencyDate)
+			cursor.insertRow(row)
+			del row
+		pass
 
 def createDofGdb(gdbPath):
 	"""Creates a file Geodatabase for FAA DOF data.  Creates the necessary domains as well.
@@ -419,6 +446,7 @@ def downloadDofs(url="http://tod.faa.gov/tod/public/DOFS/", datafiles=('53-WA.Da
 	@param destDir: The destination directory where the data files will be copied to.
 	@type destDir: str
 	@return: Returns a list paths of the files that were written to the file system. 
+	@rtype: list
 	"""
 	# This regular expression matches the links to the DOF_* zip files.  Captures are 2-digit year, month, and day, respectively.
 	linkRe = re.compile(r"""<a href=['"](?P<path>/tod/public/DOFS/DOF_(\d{2})(\d{2})(\d{2})\.zip)['"]>""", re.IGNORECASE)
@@ -464,32 +492,34 @@ def downloadDofs(url="http://tod.faa.gov/tod/public/DOFS/", datafiles=('53-WA.Da
 	elif not os.path.isdir(destDir):
 		raise "Destination directory path exists, but is not a directory."
 	
+	# Create the output list of table paths.
 	destNames = []
 	
+	# Loop thorugh the list of requested data files.  Extract and save a copy of each.
 	for fname in (datafiles):
 		source_name = fname
 		dest_fname = os.path.join(destDir, os.path.basename(fname))
 		print "Extracing %s to %s" % (source_name, dest_fname)
 		
-		#=======================================================================
-		# #This is the original code block as written by the original author.  It does not work in Python 2.6, though.
-		# with hzfile.open(source_name) as f:
-		#	data = f.read()
-		#	new_file = open(dest_fname, 'wb')
-		#	new_file.write(data)
-		#	new_file.close()
-		#=======================================================================
-		
+		# Get the data for the requested file.
 		f = hzfile.open(source_name)
+		# Initialize the new file.
 		new_file = None
 		try:
+			# Read the file data.
 			data = f.read()
+			# Create the destination file.
 			new_file = open(dest_fname, 'wb') # must open file as binary (unless you know you're only dealing with text files).
+			# Write the data from the source to destination.
 			new_file.write(data)
+			# Close the newly created file (the local copy).
 			new_file.close()
+			# Add this file's path to the output list of files.
 			destNames.append(dest_fname)
 		finally:
+			# Close the http zip file.
 			f.close()
+			# Close the new file if it is open.
 			if new_file is not None:
 				new_file.close()
 	
