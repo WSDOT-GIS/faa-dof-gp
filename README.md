@@ -1,5 +1,5 @@
 # faa-dof-gp #
-This library provides the ability to read the [Federal Aviation Administration (FAA) Terrain and Obstacles Data (TOD) Team - Digital Obstacle File (DOF) files](https://nfdc.faa.gov/tod/public/TOD_DOF.html).
+This library provides the ability to read the [Federal Aviation Administration (FAA) Terrain and Obstacles Data (TOD) Team - Digital Obstacle File (DOF) files](http://tod.faa.gov/tod/public/TOD_DOF.html).
 
 ## faadof.py ##
 Provides utilities for importing FAA DOF data into a geodatabase.

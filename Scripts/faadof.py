@@ -386,7 +386,7 @@ def createDofFeatureClass(out_path, name, projection):
 	arcpy.management.AddField(fcPath, "Lighting", "TEXT", field_length=1, field_domain="LightingType")
 	arcpy.management.AddField(fcPath, "HorizontalAccuracy", "TEXT", None, None, 1, "Horizontal Accuracy", None, None, "HorizontalAccuracy")
 	arcpy.management.AddField(fcPath, "VerticalAccuracy", "TEXT", None, None, 1, "Vertical Accuracy", None, None, "VerticalAccuracy")
-	arcpy.management.AddField(fcPath, "MarkIndicator", "TEXT", None, None, 1, "Mark Indicator", None, None, "Mark Indicator")
+	arcpy.management.AddField(fcPath, "MarkIndicator", "TEXT", None, None, 1, "Mark Indicator", None, None, "MarkIndicator")
 	arcpy.management.AddField(fcPath, "FaaStudyNo", "TEXT", None, None, 14, "FAA Study Number")
 	arcpy.management.AddField(fcPath, "Action", "TEXT", None, None, 1, None, None, None, "Action")
 	arcpy.management.AddField(fcPath, "Date", "DATE")
@@ -619,7 +619,7 @@ def main(argv=None):
 	print "Creating new geodatabase: %s..." % gdbPath
 	createDofGdb(gdbPath)
 	
-	print "Importing data from..."
+	print "Importing data..."
 	readDofsIntoGdb(gdbPath, dofFilePaths)
 	
 	print "Finished"
@@ -627,4 +627,3 @@ def main(argv=None):
 	
 if __name__ == "__main__":
 	main()
-	##downloadDofs()
