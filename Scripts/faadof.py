@@ -614,7 +614,7 @@ def main(argv=None):
 	if len(argv) > 1:
 		gdbPath = os.path.abspath(arcpy.GetParameterAsText(1))
 	else:
-		gdbPath = os.path.abspath("../../FaaObstruction.gdb")
+		gdbPath = os.path.abspath("../FaaObstruction.gdb")
 	
 	print "Creating new geodatabase: %s..." % gdbPath
 	createDofGdb(gdbPath)
