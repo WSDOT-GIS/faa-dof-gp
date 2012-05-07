@@ -391,6 +391,45 @@ def createDofFeatureClass(out_path, name, projection):
 	arcpy.management.AddField(fcPath, "Action", "TEXT", None, None, 1, None, None, None, "Action")
 	arcpy.management.AddField(fcPath, "Date", "DATE")
 
+def _updateCurrencyDate(tablePath, currencyDate):
+	"""Updates the Currency Date table with the new currency date.  If there are no existing rows, a new row will be added.  
+	Otherwise the existing row will be updated.
+	@param tablePath: The path to the CurrencyDate table.
+	@type tablePath: str 
+	@param currencyDate: The new currency date
+	@type currencyDate: datetime.date or str
+	"""
+	# Get the number of rows in the Currency Date table.  Resunt of GetCount is a gpResult, not an int.
+	gpResult = arcpy.management.GetCount(tablePath)
+	# Get the row count from the gpResult.  This result is returned as a str, so must be converted ty int.
+	rowCount = int(gpResult.getOutput(0))
+	# If the table already contains rows, update the existing rows with the new currency date.  
+	# (There should only ever be one row, but if there are more then all rows will be updated.)
+	if rowCount >= 1:
+		cursor, row = None, None
+		try:
+			cursor = arcpy.UpdateCursor(tablePath, None, None, "CurrencyDate")
+			for row in cursor:
+				row.CurrencyDate = str(currencyDate)
+				cursor.updateRow(row)
+			
+		finally:
+			del row, cursor
+	else:
+		# If there are no existing rows, create a new one.
+		cursor, row = None, None
+		try:
+			cursor = arcpy.InsertCursor(tablePath)
+			row = cursor.newRow()
+			# Date values are added to rows via cursor as strings.
+			if type(currencyDate) == str:
+				row.CurrencyDate = currencyDate
+			elif type(currencyDate) == datetime.date:
+				row.CurrencyDate = str(currencyDate)
+			cursor.insertRow(row)
+		finally:
+			del cursor, row
+
 def createCurrencyDateTable(out_path, out_name="CurrencyDate", currencyDate=None):
 	"""Creates the "CurrencyDate" table and optionally populates it.
 	@param out_path: The path to the geodatabase where the table will be created.
@@ -408,18 +447,32 @@ def createCurrencyDateTable(out_path, out_name="CurrencyDate", currencyDate=None
 	arcpy.management.AddField(tablePath, "CurrencyDate", "DATE", field_alias="Currency Date")
 	# If a currency date value has been provided, add a new row with the currency date.
 	if currencyDate is not None:
-		with arcpy.InsertCursor(tablePath) as cursor:
-			row = cursor.newRow()
-			# Date values are added to rows via cursor as strings.
-			if type(currencyDate) == str:
-				row.CurrencyDate = currencyDate
-			elif type(currencyDate) == datetime.date:
-				row.CurrencyDate = str(currencyDate)
-			cursor.insertRow(row)
-			del row
-		pass
+		_updateCurrencyDate(tablePath, currencyDate)
 
-def createDofGdb(gdbPath):
+
+def getCurrencyDate(gdbPath, currencyDateTableName="CurrencyDate", currencyDateFieldName="CurrencyDate"):
+	"""Gets the currency date from the geodatabase.
+	@param gdbPath: The path to the geodatabase.
+	"""
+	tablePath = os.path.join(gdbPath, currencyDateTableName)
+	output = None
+	if arcpy.Exists(gdbPath) and arcpy.Exists(tablePath):
+		cursor = None
+		row = None
+		try:
+			cursor = arcpy.SearchCursor(tablePath, None, None, currencyDateFieldName)
+			row = cursor.next()
+			if row is not None:
+				output = row.getValue(currencyDateFieldName)
+				if type(output) == str:
+					output = datetime.datetime.strptime(output, "%m/%d/%Y")
+				if type(output) == datetime.datetime:
+					output = output.date()
+		finally:
+			del row, cursor
+	return output
+
+def createDofGdb(gdbPath, currencyDate=None):
 	"""Creates a file Geodatabase for FAA DOF data.  Creates the necessary domains as well.
 	@param gdbParam: The path where the GDB will be created.
 	"""
@@ -435,9 +488,11 @@ def createDofGdb(gdbPath):
 	# Add feature class
 	print "Creating feature class..." 
 	createDofFeatureClass(gdbPath, "Obstacles", _wgs84 + ',' + _navd1988)
+	print "Creating currency date table..."
+	createCurrencyDateTable(gdbPath, currencyDate=currencyDate)
 
 
-def downloadDofs(url="http://tod.faa.gov/tod/public/DOFS/", datafiles=('53-WA.Dat',), destDir="../Scratch"):
+def downloadDofs(url="http://tod.faa.gov/tod/public/DOFS/", datafiles=('53-WA.Dat',), destDir="../Scratch", lastCurrencyDate=None):
 	"""Downloads the specified data files from the FAA website.
 	@param url: The URL of the directory that contains the DOF data zip archives.
 	@type url: str
@@ -445,8 +500,11 @@ def downloadDofs(url="http://tod.faa.gov/tod/public/DOFS/", datafiles=('53-WA.Da
 	@type dataFiles: set
 	@param destDir: The destination directory where the data files will be copied to.
 	@type destDir: str
-	@return: Returns a list paths of the files that were written to the file system. 
-	@rtype: list
+	@param lastCurrencyDate: The last currency date since you performed this operation.  If the last update listed of the FAA page is
+	<= lastCurrencyDate then the operation will be aborted because the FAA has no newer information.
+	@type lastCurrencyDate: datetime.date
+	@return: Returns a list paths of the files that were written to the file system.  If there were no newer data to download, None is returned. 
+	@rtype: list or None
 	"""
 	# This regular expression matches the links to the DOF_* zip files.  Captures are 2-digit year, month, and day, respectively.
 	linkRe = re.compile(r"""<a href=['"](?P<path>/tod/public/DOFS/DOF_(\d{2})(\d{2})(\d{2})\.zip)['"]>""", re.IGNORECASE)
@@ -482,71 +540,75 @@ def downloadDofs(url="http://tod.faa.gov/tod/public/DOFS/", datafiles=('53-WA.Da
 	print data
 	print "The newest file is %s." %  newest["url"]
 	
-	# Download the desired data files from the zip.
-	hzfile = remotezip.HTTPZipFile(newest["url"])
-	#hzfile.printdir()
-	
-	# Create the destination directory if it does not already exist.
-	if not os.path.exists(destDir):
-		os.mkdir(destDir)
-	elif not os.path.isdir(destDir):
-		raise "Destination directory path exists, but is not a directory."
-	
-	# Create the output list of table paths.
-	destNames = []
-	
-	# Loop thorugh the list of requested data files.  Extract and save a copy of each.
-	for fname in (datafiles):
-		source_name = fname
-		dest_fname = os.path.join(destDir, os.path.basename(fname))
-		print "Extracing %s to %s" % (source_name, dest_fname)
+	if lastCurrencyDate is not None and newest["date"] >= lastCurrencyDate:
+		arcpy.AddMessage("No new data has been added since %s.  No update is necessary." % lastCurrencyDate)
+		return None
+	else:
+		# Download the desired data files from the zip.
+		hzfile = remotezip.HTTPZipFile(newest["url"])
+		#hzfile.printdir()
 		
-		# Get the data for the requested file.
-		f = hzfile.open(source_name)
-		# Initialize the new file.
-		new_file = None
-		try:
-			# Read the file data.
-			data = f.read()
-			# Create the destination file.
-			new_file = open(dest_fname, 'wb') # must open file as binary (unless you know you're only dealing with text files).
-			# Write the data from the source to destination.
-			new_file.write(data)
-			# Close the newly created file (the local copy).
-			new_file.close()
-			# Add this file's path to the output list of files.
-			destNames.append(dest_fname)
-		finally:
-			# Close the http zip file.
-			f.close()
-			# Close the new file if it is open.
-			if new_file is not None:
+		# Create the destination directory if it does not already exist.
+		if not os.path.exists(destDir):
+			os.mkdir(destDir)
+		elif not os.path.isdir(destDir):
+			raise "Destination directory path exists, but is not a directory."
+		
+		# Create the output list of table paths.
+		destNames = []
+		
+		# Loop thorugh the list of requested data files.  Extract and save a copy of each.
+		for fname in (datafiles):
+			source_name = fname
+			dest_fname = os.path.join(destDir, os.path.basename(fname))
+			print "Extracing %s to %s" % (source_name, dest_fname)
+			
+			# Get the data for the requested file.
+			f = hzfile.open(source_name)
+			# Initialize the new file.
+			new_file = None
+			try:
+				# Read the file data.
+				data = f.read()
+				# Create the destination file.
+				new_file = open(dest_fname, 'wb') # must open file as binary (unless you know you're only dealing with text files).
+				# Write the data from the source to destination.
+				new_file.write(data)
+				# Close the newly created file (the local copy).
 				new_file.close()
+				# Add this file's path to the output list of files.
+				destNames.append(dest_fname)
+			finally:
+				# Close the http zip file.
+				f.close()
+				# Close the new file if it is open.
+				if new_file is not None:
+					new_file.close()
 	
-	return destNames
+		return destNames
 
 def readDofFile(dofPath):
 	"""Reads DOF file and converts to Obstacle objects.
 	@param dofPath: Path to the DOF file
-	@param gdbPath: Path to the GDB.
+	@return: A dict with the following keys: "obstacles" and "currencyDate".  "obstacles" is a list of Obstacle objects.
+	@rtype: dict
 	"""
 	obstacles = []
+	currencyDate = None
 	if os.path.exists(dofPath):
 		with open(dofPath) as f:
 			i = 0
 			for line in f:
 				if i == 0:
-					pass # TODO: Do something with "Currency Date"
+					currencyDate =_parseCurrencyDate(line)
 				elif i >= 4:
 					obstacle = Obstacle(line)
-					print "%s,%s" % (str(obstacle.longitude), str(obstacle.latitude))
-					print "%s %s" % (obstacle.longitude.toDD(), obstacle.latitude.toDD())
 					obstacles.append(obstacle)
 				i += 1
 				
 	else:
 		raise "File not found: %s" % dofPath
-	return obstacles
+	return { "obstacles": obstacles, "currencyDate": currencyDate }
 
 def _readDofIntoGdb(dofPath, cursor88, cursor29):
 	"""Reads a DOF file into a geodatabase using the specified cursors.
@@ -591,12 +653,18 @@ def readDofsIntoGdb(gdbPath, dofPaths):
 	@param dofPaths: Paths to DOF files
 	"""
 	featureClassPath = os.path.join(gdbPath, "Obstacles")
+	currencyDateTablePath = os.path.join(gdbPath, "CurrencyDate")
 	# Because of the differing vertical coordinate systems, two cursors need to be created.
 	cursor88 = arcpy.InsertCursor(featureClassPath)
 	cursor29 = arcpy.InsertCursor(featureClassPath, "%s,%s" % (_wgs84, _ngvd1929))
+	currencyDate = None
 	for dofPath in dofPaths:
-		_readDofIntoGdb(dofPath, cursor88, cursor29)
+		currencyDate =_readDofIntoGdb(dofPath, cursor88, cursor29)
 	del cursor88, cursor29
+	
+	# Update the currency date.
+	if currencyDate is not None:
+		_updateCurrencyDate(currencyDateTablePath, currencyDate)
 
 
 
@@ -607,20 +675,27 @@ def main(argv=None):
 	if argv is None:
 		argv = sys.argv
 		
-	print "Downloading DOFs..."
-	dofFilePaths = downloadDofs();
-	
 	# Get the parameter for the output GDB.
 	if len(argv) > 1:
 		gdbPath = os.path.abspath(arcpy.GetParameterAsText(1))
 	else:
 		gdbPath = os.path.abspath("../FaaObstruction.gdb")
 	
-	print "Creating new geodatabase: %s..." % gdbPath
-	createDofGdb(gdbPath)
+	currencyDate = None
+	if arcpy.Exists(gdbPath):
+		# Get the currency date
+		currencyDate = getCurrencyDate(gdbPath)
+		
+	print "Downloading DOFs..."
+	dofFilePaths = downloadDofs(lastCurrencyDate=currencyDate);
 	
-	print "Importing data..."
-	readDofsIntoGdb(gdbPath, dofFilePaths)
+	if dofFilePaths is not None:
+		
+		print "Creating new geodatabase: %s..." % gdbPath
+		createDofGdb(gdbPath)
+		
+		print "Importing data..."
+		readDofsIntoGdb(gdbPath, dofFilePaths)
 	
 	print "Finished"
 
