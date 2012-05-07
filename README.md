@@ -10,6 +10,5 @@ Reads remote ZIP files using HTTP range requests.
 
 
 ## TO DO ##
-* Add ability to read the latest zip file from [FAA DOF site](https://nfdc.faa.gov/tod/public/DOFS/) and extract only the desired text file.  (E.g., extract only the data for WA without having to download the whole zip file.)
-
+* Add ability to detect if the output geodatabase already has the latest data using the *currency date*.  If the output gdb already has the latest data, then the importing process can be skipped.
 
