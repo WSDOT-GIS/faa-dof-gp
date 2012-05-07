@@ -9,7 +9,7 @@ Created on Apr 23, 2012
 @todo: add optional command line parameter for which z value to use in geometry: above ground or above sea level column
 '''
 
-import sys, os.path, re, datetime, urllib2, zipfile
+import sys, os.path, re, datetime, urllib2, remotezip
 print "Importing arcpy..."
 import arcpy
 print "Finished importing arcpy..."
@@ -20,6 +20,21 @@ _ngvd1929 = 'VERTCS["NGVD_1929",VDATUM["National_Geodetic_Vertical_Datum_1929"],
 _navd1988 = 'VERTCS["NAVD_1988",VDATUM["North_American_Vertical_Datum_1988"],PARAMETER["Vertical_Shift",0.0],PARAMETER["Direction",1.0],UNIT["Meter",1.0],AUTHORITY["EPSG",5703]]'
 
 _zDate = datetime.date(2001, 3, 12) # Records on or after this date are in NAVD 1988.  Prior are NGVD 1929.
+
+def _parseCurrencyDate(line, out_format=None):
+	"""Parses the currency date
+	"""
+	regex = re.compile(r"\s*CURRENCY\sDATE\s*=\s*(?P<month>\d{2})/(?P<day>\d{2})/(?P<year>\d{2})",re.IGNORECASE)
+	r = regex.search(line)
+	output = None
+	if r is not None:
+		d = r.groupdict()
+		if out_format == "str":
+			output = "%(month)s-%(day)s-20%(year)s" % d
+		else:
+			output = datetime.date(int("20" + d["year"]), int(d["month"]), int(d["day"]))
+	return output
+		
 
 def julianDateToDate(jDate):
 	match =_jdatere.match(jDate)
@@ -396,14 +411,24 @@ def createDofGdb(gdbPath):
 	createDofFeatureClass(gdbPath, "Obstacles", _wgs84 + ',' + _navd1988)
 
 
-def downloadDofs(url="https://nfdc.faa.gov/tod/public/DOFS/"):
+def downloadDofs(url="http://tod.faa.gov/tod/public/DOFS/", datafiles=('53-WA.Dat',), destDir="../Scratch"):
+	"""Downloads the specified data files from the FAA website.
+	@param url: The URL of the directory that contains the DOF data zip archives.
+	@type url: str
+	@param datafiles: A set of file names fo the .DAT files that are to be downloaded.
+	@type dataFiles: set
+	@param destDir: The destination directory where the data files will be copied to.
+	@type destDir: str
+	@return: Returns a list paths of the files that were written to the file system. 
+	"""
+	# This regular expression matches the links to the DOF_* zip files.  Captures are 2-digit year, month, and day, respectively.
 	linkRe = re.compile(r"""<a href=['"](?P<path>/tod/public/DOFS/DOF_(\d{2})(\d{2})(\d{2})\.zip)['"]>""", re.IGNORECASE)
 	
 	print "Reading '%s'..." % url
 	# Open the page and store the HTML in a variable.
 	f = urllib2.urlopen(url)
 	html = f.read()
-	del f# Delete references to unused variables.
+	del f # Delete references to unused variables.
 	
 	# Extract all of the DOF URLs
 	matches = linkRe.findall(html)
@@ -414,9 +439,14 @@ def downloadDofs(url="https://nfdc.faa.gov/tod/public/DOFS/"):
 	#	('/tod/public/DOFS/DOF_120108.zip', '12', '01', '08'), 
 	#	('/tod/public/DOFS/DOF_120304.zip', '12', '03', '04')
 	#]
-	data = map(lambda s: {"url": urllib2.urlparse.urljoin(url, s[0]), "date": datetime.date(int("20" + s[1]), int(s[2]), int(s[3]))}, matches)
+	# Convert the matches into a dictionary containing keys "url" and "date".
+	data = map(lambda s: {
+						"url": urllib2.urlparse.urljoin(url, s[0]), 
+						"date": datetime.date(int("20" + s[1]), int(s[2]), int(s[3]))
+						}, matches
+			)
 	
-	# TODO: Loop through all of the paths and determine which is the newest.  Download that file.
+	# Loop through all of the paths and determine which is the newest.  Download that file.
 	
 	newest = None
 	for info in data:
@@ -424,6 +454,47 @@ def downloadDofs(url="https://nfdc.faa.gov/tod/public/DOFS/"):
 			newest = info
 	print data
 	print "The newest file is %s." %  newest["url"]
+	
+	# Download the desired data files from the zip.
+	hzfile = remotezip.HTTPZipFile(newest["url"])
+	#hzfile.printdir()
+	
+	# Create the destination directory if it does not already exist.
+	if not os.path.exists(destDir):
+		os.mkdir(destDir)
+	elif not os.path.isdir(destDir):
+		raise "Destination directory path exists, but is not a directory."
+	
+	destNames = []
+	
+	for fname in (datafiles):
+		source_name = fname
+		dest_fname = os.path.join(destDir, os.path.basename(fname))
+		print "Extracing %s to %s" % (source_name, dest_fname)
+		
+		#=======================================================================
+		# #This is the original code block as written by the original author.  It does not work in Python 2.6, though.
+		# with hzfile.open(source_name) as f:
+		#	data = f.read()
+		#	new_file = open(dest_fname, 'wb')
+		#	new_file.write(data)
+		#	new_file.close()
+		#=======================================================================
+		
+		f = hzfile.open(source_name)
+		new_file = None
+		try:
+			data = f.read()
+			new_file = open(dest_fname, 'wb') # must open file as binary (unless you know you're only dealing with text files).
+			new_file.write(data)
+			new_file.close()
+			destNames.append(dest_fname)
+		finally:
+			f.close()
+			if new_file is not None:
+				new_file.close()
+	
+	return destNames
 
 def readDofFile(dofPath):
 	"""Reads DOF file and converts to Obstacle objects.
@@ -448,63 +519,79 @@ def readDofFile(dofPath):
 		raise "File not found: %s" % dofPath
 	return obstacles
 
-def readDofIntoGdb(dofPath, gdbPath):
-	"""Reads DOF file into file geodatabase.
-	@param dofPath: Path to the DOF file
-	@param gdbPath: Path to the GDB.
-	@todo: Put all features into a single feature class.  Use different cursors to handle the different vertical coordinate systems .
+def _readDofIntoGdb(dofPath, cursor88, cursor29):
+	"""Reads a DOF file into a geodatabase using the specified cursors.
+	@param dofPath: Path to the DOF file.
+	@type dofPath: str
+	@param cursor88: Cursor to the "Obstacles" feature class.
+	@type cursor88: arcpy.InsertCursor
+	@param cursor29: Cursor to the "Obstacles" feature class with the coordinate system set to WGS84 + NGVD1929.
+	@type cursor29: arcpy.InsertCursor
+	@return: Returns the currency date (or None if unsuccessful).
+	@rtype: datetime.date
+	@raise IOError: Raised if dofPath does not exist.
 	"""
-	if os.path.exists(dofPath):
-		# Because of the differing vertical coordinate systems, two cursors need to be created.
+	if not os.path.exists(dofPath):
+		raise IOError("File not found: %s" % dofPath)
+	
+	currencyDate = None
+	with open(dofPath) as f:
 		cursor = None
-		cursor88 = arcpy.InsertCursor(os.path.join(gdbPath, "Obstacles"))
-		cursor29 = arcpy.InsertCursor(os.path.join(gdbPath, "Obstacles"), "%s,%s" % (_wgs84, _ngvd1929))
-		with open(dofPath) as f:
-			i = 0
-			for line in f:
-				if i == 0:
-					print line
-					# TODO: Do something with "Currency Date"
-				elif i >= 4:
-					obstacle = Obstacle(line)
+		i = 0
+		for line in f:
+			if i == 0:
+				currencyDate = _parseCurrencyDate(line)
+			elif i >= 4:
+				obstacle = Obstacle(line)
+				
+				# Choose the correct cursor based on the date
+				if obstacle.date < _zDate:
+					cursor = cursor29
+				else:
+					cursor = cursor88
 					
-					# Choose the correct cursor based on the date
-					if False: #obstacle.date < _zDate:
-						cursor = cursor29
-					else:
-						cursor = cursor88
-						
-					row = cursor.newRow()
-					addObstacleToRow(row, obstacle)
-					cursor.insertRow(row)
-					
-				i += 1
-		del cursor88, cursor29
-	else:
-		raise "File not found: %s" % dofPath
+				row = cursor.newRow()
+				addObstacleToRow(row, obstacle)
+				cursor.insertRow(row)
+			i += 1
+	return currencyDate
+
+def readDofsIntoGdb(gdbPath, dofPaths):
+	"""Reads DOF file into file geodatabase.
+	@param gdbPath: Path to the GDB.
+	@param dofPaths: Paths to DOF files
+	"""
+	featureClassPath = os.path.join(gdbPath, "Obstacles")
+	# Because of the differing vertical coordinate systems, two cursors need to be created.
+	cursor88 = arcpy.InsertCursor(featureClassPath)
+	cursor29 = arcpy.InsertCursor(featureClassPath, "%s,%s" % (_wgs84, _ngvd1929))
+	for dofPath in dofPaths:
+		_readDofIntoGdb(dofPath, cursor88, cursor29)
+	del cursor88, cursor29
+
 
 
 def main(argv=None):
 	"""This method will be run if this file is run as a script (as opposed to a module).
 	"""
+	
 	if argv is None:
 		argv = sys.argv
+		
+	print "Downloading DOFs..."
+	dofFilePaths = downloadDofs();
 	
+	# Get the parameter for the output GDB.
 	if len(argv) > 1:
 		gdbPath = os.path.abspath(arcpy.GetParameterAsText(1))
 	else:
 		gdbPath = os.path.abspath("../../FaaObstruction.gdb")
 	
-	if len(argv) > 2:
-		dofPath = os.path.abspath(arcpy.GetParameterAsText(2))
-	else:
-		dofPath = os.path.abspath("../../Sample/53-WA.Dat")
-	
 	print "Creating new geodatabase: %s..." % gdbPath
 	createDofGdb(gdbPath)
 	
-	print "Importing data from %s into %s..." % (dofPath, gdbPath)
-	readDofIntoGdb(dofPath, gdbPath)
+	print "Importing data from..."
+	readDofsIntoGdb(gdbPath, dofFilePaths)
 	
 	print "Finished"
 
