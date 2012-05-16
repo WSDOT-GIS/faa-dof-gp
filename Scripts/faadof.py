@@ -2,7 +2,6 @@
 '''
 Created on Apr 23, 2012
 @param The path of the output geodatabase.
-@param The path to the input digital obstacle file (DOF) 
 
 @author: JacobsJ
 @todo: add optional command line parameter for which z value to use in geometry: above ground or above sea level column
