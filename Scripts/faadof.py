@@ -539,7 +539,7 @@ def downloadDofs(url="http://tod.faa.gov/tod/public/DOFS/", datafiles=('53-WA.Da
 	print data
 	print "The newest file is %s." %  newest["url"]
 	
-	if lastCurrencyDate is not None and newest["date"] >= lastCurrencyDate:
+	if lastCurrencyDate is not None and newest["date"] <= lastCurrencyDate:
 		arcpy.AddMessage("No new data has been added since %s.  No update is necessary." % lastCurrencyDate)
 		return None
 	else:
