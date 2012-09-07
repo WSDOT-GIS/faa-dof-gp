@@ -14,5 +14,9 @@ This library provides the ability to read the [Federal Aviation Administration (
 Provides utilities for importing FAA DOF data into a geodatabase.
 
 ### remotezip.py ###
-Code [posted on StackOverflow](http://stackoverflow.com/a/7843535) by [João Pinto](http://stackoverflow.com/users/401041/joao-pinto).
 Reads remote ZIP files using HTTP range requests.
+Code [posted on StackOverflow](http://stackoverflow.com/a/7843535) by [João Pinto](http://stackoverflow.com/users/401041/joao-pinto).
+
+
+## Licensing ##
+Licensed under the [CC BY-SA 3.0 License](http://creativecommons.org/licenses/by-sa/3.0/).
