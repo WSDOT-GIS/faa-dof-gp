@@ -22,7 +22,7 @@ Licensed under the [CC BY-SA 3.0 License](http://creativecommons.org/licenses/by
 
 ## Use ##
 
-### Getting the Python scripts and related onto your computer ###
+### Getting the Python scripts onto your computer ###
 If you are reading these instructions on GitHub then the first thing you will need to do is copy the files to your computer.  You can either download and extract [a zip archive](https://github.com/WSDOT-GIS/faa-dof-gp/zipball/master) (or if you know how to use `git` you can use `git clone`).
 
 ### Running the script ###
