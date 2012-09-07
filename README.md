@@ -36,11 +36,8 @@ If you run the script again, the script will check the FAA website to see if the
 You can import `faadof.py` as a module in your own Python script if you need to use data other than that of WA.
 
 ```python
-import sys, faadof
+import sys, os, faadof
 
-if argv is None:
-	argv = sys.argv
-	
 # Get the parameter for the output GDB.
 if len(sys.argv) > 1:
 	gdbPath = os.path.abspath(sys.argv[1])
@@ -50,18 +47,18 @@ else:
 currencyDate = None
 if arcpy.Exists(gdbPath):
 	# Get the currency date
-	currencyDate = getCurrencyDate(gdbPath)
+	currencyDate = faadof.getCurrencyDate(gdbPath)
 	
 print "Downloading DOFs..."
-dofFilePaths = downloadDofs(datafiles=('56-WY.DAT'),lastCurrencyDate=currencyDate);
+dofFilePaths = faadof.downloadDofs(datafiles=('56-WY.DAT'),lastCurrencyDate=currencyDate);
 
 if dofFilePaths is not None:
 	
 	print "Creating new geodatabase: %s..." % gdbPath
-	createDofGdb(gdbPath)
+	faadof.createDofGdb(gdbPath)
 	
 	print "Importing data..."
-	readDofsIntoGdb(gdbPath, dofFilePaths)
+	faadof.readDofsIntoGdb(gdbPath, dofFilePaths)
 
 print "Finished"
 ```

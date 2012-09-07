@@ -676,7 +676,7 @@ def main(argv=None):
 		
 	# Get the parameter for the output GDB.
 	if len(argv) > 1:
-		gdbPath = os.path.abspath(arcpy.GetParameterAsText(1))
+		gdbPath = os.path.abspath(arcpy.GetParameterAsText(0))
 	else:
 		gdbPath = os.path.abspath("../FaaObstruction.gdb")
 	
