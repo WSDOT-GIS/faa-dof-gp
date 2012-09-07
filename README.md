@@ -1,6 +1,11 @@
 faa-dof-gp
 ==========
 
+Written by [Jeff Jacobson](https://github.com/JeffJacobson) for [Washington State Department of Transportation (WSDOT) GIS & Roadway Data Office](http://www.wsdot.wa.gov/mapsdata/grdo_home.htm).
+
+
+## Summary ##
+
 This library provides the ability to read the [Federal Aviation Administration (FAA) Terrain and Obstacles Data (TOD) Team - Digital Obstacle File (DOF) files](http://tod.faa.gov/tod/public/TOD_DOF.html).
 
 ## Dependencies ##
