@@ -28,7 +28,7 @@ Licensed under the [CC BY-SA 3.0 License](http://creativecommons.org/licenses/by
 ## Use ##
 
 ### Getting the Python scripts onto your computer ###
-If you are reading these instructions on GitHub then the first thing you will need to do is copy the files to your computer.  You can either download and extract [a zip archive](https://github.com/WSDOT-GIS/faa-dof-gp/zipball/master) (or if you know how to use `git` you can use `git clone`).
+If you are reading these instructions on GitHub then the first thing you will need to do is copy the files to your computer.  You can download and extract [a zip archive](https://github.com/WSDOT-GIS/faa-dof-gp/zipball/master) (or if you know how to use `git` you can use `git clone`).
 
 ### Running the script ###
 Run `Scripts/faadof.py`.  This will download the obstacle data for Washington state from the FAA website and copy it into a file geodatabase.  You can provide an optional parameter to specify the path to the output file geodatabase.  If this parameter is omitted the output path will default to `../FaaObstruction.gdb`.
