@@ -20,10 +20,7 @@ Provides utilities for importing FAA DOF data into a geodatabase.
 
 ### remotezip.py ###
 Reads remote ZIP files using HTTP range requests.  This allows a file contained in a remote ZIP archive to be downloaded and extracted without the need to download the *entire* ZIP archive.
-Code [posted on StackOverflow] by [João Pinto].
-
-## Licensing ##
-Licensed under the [CC BY-SA 3.0 License].
+Code [posted on StackOverflow] by [João Pinto]. This code is licensed under the [CC BY-SA 3.0 License].
 
 ## Use ##
 
