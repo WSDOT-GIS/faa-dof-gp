@@ -491,7 +491,7 @@ def createDofGdb(gdbPath, currencyDate=None):
 	createCurrencyDateTable(gdbPath, currencyDate=currencyDate)
 
 
-def downloadDofs(url="http://tod.faa.gov/tod/public/DOFS/", datafiles=('53-WA.Dat',), destDir="../Scratch", lastCurrencyDate=None):
+def downloadDofs(url="http://tod.faa.gov/tod/public/", index_url="http://tod.faa.gov/tod/public/TOD_DOF.html", datafiles=('53-WA.Dat',), destDir="../Scratch", lastCurrencyDate=None):
 	"""Downloads the specified data files from the FAA website.
 	@param url: The URL of the directory that contains the DOF data zip archives.
 	@type url: str
@@ -506,11 +506,11 @@ def downloadDofs(url="http://tod.faa.gov/tod/public/DOFS/", datafiles=('53-WA.Da
 	@rtype: list or None
 	"""
 	# This regular expression matches the links to the DOF_* zip files.  Captures are 2-digit year, month, and day, respectively.
-	linkRe = re.compile(r"""<a href=['"](?P<path>/tod/public/DOFS/DOF_(\d{2})(\d{2})(\d{2})\.zip)['"]>""", re.IGNORECASE)
+	linkRe = re.compile(r"""<a href=['"](?P<path>DOFS/DOF_(\d{2})(\d{2})(\d{2})\.zip)['"]>""", re.IGNORECASE)
 	
 	print "Reading '%s'..." % url
 	# Open the page and store the HTML in a variable.
-	f = urllib2.urlopen(url)
+	f = urllib2.urlopen(index_url)
 	html = f.read()
 	del f # Delete references to unused variables.
 	
@@ -518,10 +518,10 @@ def downloadDofs(url="http://tod.faa.gov/tod/public/DOFS/", datafiles=('53-WA.Da
 	matches = linkRe.findall(html)
 	# sample matches:
 	#[
-	#	('/tod/public/DOFS/DOF_111020.zip', '11', '10', '20'), 
-	#	('/tod/public/DOFS/DOF_111215.zip', '11', '12', '15'), 
-	#	('/tod/public/DOFS/DOF_120108.zip', '12', '01', '08'), 
-	#	('/tod/public/DOFS/DOF_120304.zip', '12', '03', '04')
+	#	('DOFS/DOF_111020.zip', '11', '10', '20'), 
+	#	('DOFS/DOF_111215.zip', '11', '12', '15'), 
+	#	('DOFS/DOF_120108.zip', '12', '01', '08'), 
+	#	('DOFS/DOF_120304.zip', '12', '03', '04')
 	#]
 	# Convert the matches into a dictionary containing keys "url" and "date".
 	data = map(lambda s: {

@@ -273,8 +273,8 @@ class HTTPZipFile:
 		offset += fheader[_FH_FILENAME_LENGTH]+fheader[_FH_EXTRA_FIELD_LENGTH]
 		f = _http_get_partial_data(self.url, offset, offset+fheader[_FH_COMPRESSED_SIZE]-1)
 		data = f.read()
-		#return ZipExtFile(cStringIO.StringIO(data), 'r', zinfo)
-		return ZipExtFile(cStringIO.StringIO(data), zinfo)
+		return ZipExtFile(cStringIO.StringIO(data), 'r', zinfo)
+		#return ZipExtFile(cStringIO.StringIO(data), zinfo)
 
 
 if __name__ == "__main__":
@@ -296,23 +296,20 @@ if __name__ == "__main__":
 		dest_fname = join(destDir, basename(fname))
 		print "Extracing %s to %s" % (source_name, dest_fname)
 		
-		#=======================================================================
-		# #This is the original code block as written by the original author.  It does not work in Python 2.6, though.
-		# with hzfile.open(source_name) as f:
-		#	data = f.read()
-		#	new_file = open(dest_fname, 'wb')
-		#	new_file.write(data)
-		#	new_file.close()
-		#=======================================================================
-		
-		f = hzfile.open(source_name)
-		new_file = None
-		try:
+		with hzfile.open(source_name) as f:
 			data = f.read()
-			new_file = open(dest_fname, 'wb') # must open file as binary (unless you know you're only dealing with text files).
+			new_file = open(dest_fname, 'wb')
 			new_file.write(data)
 			new_file.close()
-		finally:
-			f.close()
-			if new_file is not None:
-				new_file.close()
+		
+		##f = hzfile.open(source_name)
+		##new_file = None
+		##try:
+		##	data = f.read()
+		##	new_file = open(dest_fname, 'wb') # must open file as binary (unless you know you're only dealing with text files).
+		##	new_file.write(data)
+		##	new_file.close()
+		##finally:
+		##	f.close()
+		##	if new_file is not None:
+		##		new_file.close()

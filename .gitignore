@@ -1,6 +1,8 @@
 *.gdb
 *.pyc
 *.pyproj
+*.sln
+*.suo
 .project
 .pydevproject
 Scripts/tmp/*
