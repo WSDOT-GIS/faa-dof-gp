@@ -3,6 +3,11 @@ faa-dof-gp
 
 Written by [Jeff Jacobson] for [Washington State Department of Transportation (WSDOT) GIS & Roadway Data Office].
 
+## License ##
+
+* `remotezip.py` is based on code [posted on StackOverflow] by [João Pinto]. This code is licensed under the [CC BY-SA 3.0 License].
+* All other code is public domain ([Unlicense](http://unlicense.org)).
+
 
 ## Summary ##
 
